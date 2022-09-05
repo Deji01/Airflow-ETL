@@ -23,6 +23,9 @@ docker-compose down
 docker exec <container ID>
 ```
 ### extending  docker image
+<!-- ```bash
+docker-compose up -d --no-deps --build airflow-webserver airflow-scheduler
+``` -->
 ```bash
 docker build . --tag extending_airflow:latest
 ```
