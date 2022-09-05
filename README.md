@@ -22,3 +22,14 @@ docker-compose down
 ```bash
 docker exec <container ID>
 ```
+### extending  docker image
+```bash
+docker build . --tag extending_airflow:latest
+```
+Change image name from apache-airflow IN `docker-compose.yaml` file.
+```bash
+image: ${AIRFLOW_IMAGE_NAME:-extending_airflow:latest}
+```
+```bash
+docker-compose up -d --no-deps --build airflow-webserver airflow-scheduler
+```
