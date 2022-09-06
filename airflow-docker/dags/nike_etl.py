@@ -42,10 +42,7 @@ def create_connection():
 
     curr = connection.cursor()
 
-    return {
-        "connection" : connection,
-        "curr" : curr
-     }
+    return connection, curr
 
 
 def create_table(curr, query):
@@ -150,7 +147,7 @@ def transform(file):
         squarish_url = product["images"].get("squarishURL")
         url = product.get("url")
 
-        result = yield (
+        yield (
             id,
             pid,
             product_id,
@@ -184,10 +181,6 @@ def transform(file):
             squarish_url,
             url
         )
-
-        return {
-            "result" : result
-        }
 
 # SQL QUERY
 
@@ -338,12 +331,14 @@ with DAG(
     start_date=datetime(2022, 9, 5),
     schedule_interval='@daily') as dag:
 
-    list_dir = BashOperator(
-        task_id='list_dir',
-        bash_command='echo "$(ls .)"'
+    extract = PythonOperator(
+        task_id='extract',
+        python_callable=extract
     )
 
-    clean_db = PythonOperator(
-        task_id='clean_db',
-        python_callable=clean_data
+    transform_load = PythonOperator(
+        task_id='transform_load',
+        python_callable=transform
     )
+
+    extract >> transform_load 
