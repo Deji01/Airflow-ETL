@@ -452,4 +452,4 @@ with DAG(
         bash_command= 'tar -zcvf "goat_$(date '+%Y-%m-%d_%H-%M-%S%z(%Z)').tar.gz" ./data/*.json'
     )
 
-    extract >> transform_load 
+    extract >> transform_load >> archive 
