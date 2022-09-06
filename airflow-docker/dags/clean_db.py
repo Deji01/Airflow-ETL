@@ -13,7 +13,7 @@ db_password = os.environ["DB_PASSWORD"]
 db_port = os.environ["DB_PORT"]
 db_user = os.environ["DB_USER"]
 
-def create_connection():
+def create_connection(ti):
     "Create Database Connection"
 
     host = db_host
@@ -36,12 +36,13 @@ def create_connection():
         sys.exit(1)
 
     curr = connection.cursor()
-    return {
-        "connection" : connection,
-        "curr" : curr
-     }
 
-def swap_style_code(connection, curr):
+    ti.xcom_push(key='connection', value=connection)
+    ti.xcom_push(key='curr', value=curr)
+
+def swap_style_code(ti):
+    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
+    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
     try:
         curr.execute(
             """
@@ -58,7 +59,9 @@ def swap_style_code(connection, curr):
     curr.close()
     connection.close()
 
-def swap_model(connection, curr):
+def swap_model(ti):
+    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
+    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
     try:
         curr.execute(
             """
@@ -75,7 +78,9 @@ def swap_model(connection, curr):
     curr.close()
     connection.close()
 
-def update_model(connection, curr):
+def update_model(ti):
+    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
+    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
     try:
         curr.execute(
             """
@@ -92,7 +97,9 @@ def update_model(connection, curr):
     curr.close()
     connection.close()
 
-def single_brand(connection, curr):
+def single_brand(ti):
+    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
+    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
     try:
         curr.execute(
             """
@@ -108,7 +115,9 @@ def single_brand(connection, curr):
     curr.close()
     connection.close()
 
-def complete_price(connection, curr):
+def complete_price(ti):
+    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
+    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
     try:
         curr.execute(
             """
@@ -135,19 +144,34 @@ with DAG(
     start_date=datetime(2022, 9, 5),
     schedule_interval='@daily') as dag:
 
-    list_dir = BashOperator(
-        task_id='list_dir',
-        bash_command='echo "$(ls .)"'
+    create_connection = PythonOperator(
+        task_id='create_connection',
+        python_callable=create_connection
     )
 
-    clean_db = PythonOperator(
-        task_id='clean_db',
-        python_callable=clean_data
+    swap_style = PythonOperator(
+        task_id='swap_style',
+        python_callable=swap_style_code
     )
 
-# if __name__ == "__main__":
-#     # create database connection
-#     connection, curr = create_connection()
+    swap_model = PythonOperator(
+        task_id='swap_model',
+        python_callable=swap_model
+    )
 
-#     # clean database
-#     clean_data(connection, curr)
+    update_model = PythonOperator(
+        task_id='update_model',
+        python_callable=update_model
+    )
+
+    single_brand = PythonOperator(
+        task_id='single_brand',
+        python_callable=single_brand
+    )
+
+    complete_price = PythonOperator(
+        task_id='complete_price',
+        python_callable=complete_price
+    )
+
+    create_connection >> [swap_style, swap_model, update_model, single_brand, complete_price]
