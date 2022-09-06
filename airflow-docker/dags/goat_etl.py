@@ -89,7 +89,7 @@ def extract():
 
     filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
     curr = os.getcwd
-    data_dir = os.path.join(curr, "data")
+    data_dir = os.path.join(curr, "goat")
 
     with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
         json.dump(result, f)
@@ -410,7 +410,7 @@ def load():
     create_table(curr, create_table_query)
 
     # read in json files in data dir
-    files = glob.glob("./data/*.json")
+    files = glob.glob("./goat/*.json")
 
     for file in files:
         # get data from file
@@ -449,7 +449,7 @@ with DAG(
 
     archive = BashOperator(
         task_id='archive',
-        bash_command= 'tar -zcvf "goat_$(date '+%Y-%m-%d_%H-%M-%S%z(%Z)').tar.gz" ./data/*.json'
+        bash_command= 'tar -zcvf "goat_$(date '+%Y-%m-%d_%H-%M-%S%z(%Z)').tar.gz" ./goat/*.json'
     )
 
     extract >> transform_load >> archive 
