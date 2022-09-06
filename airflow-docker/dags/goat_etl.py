@@ -447,4 +447,9 @@ with DAG(
         python_callable=transform
     )
 
+    archive = BashOperator(
+        task_id='archive',
+        bash_command= 'tar -zcvf "goat_$(date '+%Y-%m-%d_%H-%M-%S%z(%Z)').tar.gz" ./data/*.json'
+    )
+
     extract >> transform_load 
