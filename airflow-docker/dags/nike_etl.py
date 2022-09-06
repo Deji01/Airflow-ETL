@@ -329,7 +329,7 @@ with DAG(
     default_args=default_args,
     dag_id='etl_scrapy',
     start_date=datetime(2022, 9, 5),
-    schedule_interval='@daily') as dag:
+    schedule_interval='0 1 * * *') as dag:
 
     extract = PythonOperator(
         task_id='extract',
