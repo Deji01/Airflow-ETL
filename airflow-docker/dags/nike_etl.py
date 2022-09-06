@@ -1,13 +1,71 @@
+from airflow import DAG
+from airflow.operators.bash_operator import BashOperator 
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta 
+import glob
 import json
 import os
+import psycopg2
 import requests
-from datetime import datetime
+import sys
 
-# import logging
+# DATABASE
 
-# import logging
+db_host = os.environ["DB_HOST"]
+db_name = os.environ["DB_NAME"]
+db_password = os.environ["DB_PASSWORD"]
+db_port = os.environ["DB_PORT"]
+db_user = os.environ["DB_USER"]
+ 
 
-# logging.basicConfig(filename='data.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+def create_connection():
+    "Create Database Connection"
+
+    host = db_host
+    dbname = db_name
+    user = db_user
+    password = db_password
+    sslmode = "require"
+
+    # Constructing connection string
+    conn_string = "host={0} user={1} dbname={2} password={3} sslmode={4}".format(
+        host, user, dbname, password, sslmode
+    )
+
+    try:
+        connection = psycopg2.connect(conn_string)
+        print("Connection established")
+
+    except psycopg2.Error as e:
+        print(f"Error connecting to Postgres DB : {e}")
+        sys.exit(1)
+
+    curr = connection.cursor()
+
+    return {
+        "connection" : connection,
+        "curr" : curr
+     }
+
+
+def create_table(curr, query):
+    "Create Table in Database if it does not exist"
+    try:
+        curr.execute(query)
+
+    except BaseException as e:
+        print(e)
+
+
+def store_db(curr, query, value):
+    "Insert data into Database and commit changes"
+    try:
+        curr.execute(query, value)
+
+    except BaseException as e:
+        print(e)
+
+# GET DATA
 
 def extract():
 
@@ -51,5 +109,241 @@ def extract():
 
         step += 1
 
-if __name__ == "__main__":
-    extract()
+# PROCESS DATA
+
+def transform(file):
+    with open(file, "r") as f:
+        data = json.load(f)
+
+    search_term = data["data"]["products"]["pages"]["searchSummary"].get("originalTerms")
+
+    for product in data["data"]["products"]["products"]:
+        id = product.get("id")
+        pid = product.get("pid")
+        product_id = product.get("cloudProductId")
+        product_instance_id = product.get("productInstanceId")
+        product_type = product.get("producType")
+        title = product.get("title")
+        subtitle = product.get("subtitle")
+        color_description = product.get("colorDescription")
+        currency = product["price"].get("currency")
+        current_price = product["price"].get("currentPrice")
+        discounted = product["price"].get("discounted")
+        employee_price = product["price"].get("employeePrice")
+        full_price = product["price"].get("fullPrice")
+        minimum_advertised_price = product["price"].get("minimumAdvertisedPrice")
+        label = product.get("label")
+        in_stock = product.get("inStock")
+        is_coming_soon = product.get("isComingSoon")
+        is_best_seller = product.get("isBestSeller")
+        is_excluded = product.get("isExcluded")
+        is_gift_card = product.get("isGiftCard")
+        is_jersey = product.get("isJersey")
+        is_launch = product.get("isLaunch")
+        is_member_exclusive = product.get("isMemberExclusive")
+        is_nba = product.get("isNBA")
+        is_nfl = product.get("isNFL")
+        is_sustainable = product.get("isSustainable")
+        has_extended_sizing = product.get("hasExtendedSizing")
+        customizable = product.get("customizable")
+        portrait_url = product["images"].get("portraitURL")
+        squarish_url = product["images"].get("squarishURL")
+        url = product.get("url")
+
+        result = yield (
+            id,
+            pid,
+            product_id,
+            product_instance_id,
+            product_type,
+            title,
+            subtitle,
+            color_description,
+            currency,
+            current_price,
+            discounted,
+            employee_price,
+            full_price,
+            minimum_advertised_price,
+            label,
+            in_stock,
+            is_coming_soon,
+            is_best_seller,
+            is_excluded,
+            is_gift_card,
+            is_jersey,
+            is_launch,
+            is_member_exclusive,
+            is_nba,
+            is_nfl,
+            is_sustainable,
+            has_extended_sizing,
+            customizable,
+            search_term,
+            portrait_url,
+            squarish_url,
+            url
+        )
+
+        return {
+            "result" : result
+        }
+
+# SQL QUERY
+
+create_table_query = """
+    CREATE TABLE IF NOT EXISTS nike (
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    id VARCHAR(50) NOT NULL PRIMARY KEY,
+    pid VARCHAR(10),
+    product_id VARCHAR(50),
+    product_instance_id VARCHAR(50),
+    product_type VARCHAR(20),
+    title VARCHAR(100),
+    subtitle VARCHAR(100),
+    color_description VARCHAR(255),
+    currency VARCHAR(10),
+    current_price NUMERIC(10, 2),
+    discounted BOOLEAN,
+    employee_price NUMERIC(10, 2),
+    full_price NUMERIC(10, 2),
+    minimum_advertised_price NUMERIC(10, 2),
+    label VARCHAR(20),
+    in_stock BOOLEAN,
+    is_coming_soon BOOLEAN,
+    is_best_seller BOOLEAN,
+    is_excluded BOOLEAN,
+    is_gift_card BOOLEAN,
+    is_jersey BOOLEAN,
+    is_launch BOOLEAN,
+    is_member_exclusive BOOLEAN,
+    is_nba BOOLEAN,
+    is_nfl BOOLEAN,
+    is_sustainable BOOLEAN,
+    has_extended_sizing BOOLEAN,
+    customizable BOOLEAN,
+    search_term VARCHAR(20),
+    portrait_url VARCHAR(255),
+    squarish_url VARCHAR(255),
+    url VARCHAR(255)
+    )
+    """
+
+insert_data_query = """
+    INSERT INTO nike (
+        id,
+        pid,
+        product_id,
+        product_instance_id,
+        product_type,
+        title,
+        subtitle,
+        color_description,
+        currency,
+        current_price,
+        discounted,
+        employee_price,
+        full_price,
+        minimum_advertised_price,
+        label,
+        in_stock,
+        is_coming_soon,
+        is_best_seller,
+        is_excluded,
+        is_gift_card,
+        is_jersey,
+        is_launch,
+        is_member_exclusive,
+        is_nba,
+        is_nfl,
+        is_sustainable,
+        has_extended_sizing,
+        customizable,
+        search_term,
+        portrait_url,
+        squarish_url,
+        url
+        )
+    VALUES (
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s,
+        %s
+    )
+    """
+
+# STORE DATA
+
+
+def load():
+    # create database connection
+    connection, curr = create_connection()
+
+    # create table if it doesn't exist
+    create_table(curr, create_table_query)
+
+    # read in json files in data dir
+    files = glob.glob("./data/*.json")
+
+    for file in files:
+        # get data from file
+        items = transform(file)
+
+        for value in items:
+            # store data in database
+            store_db(curr, insert_data_query, value)
+            connection.commit()
+
+    # close cursor and connection
+    curr.close()
+    connection.close()
+
+default_args = {
+    'owner' : 'Deji',
+    'retry' : 5,
+    'retry_delay' : timedelta(minutes=2)
+}
+
+with DAG(
+    default_args=default_args,
+    dag_id='etl_scrapy',
+    start_date=datetime(2022, 9, 5),
+    schedule_interval='@daily') as dag:
+
+    list_dir = BashOperator(
+        task_id='list_dir',
+        bash_command='echo "$(ls .)"'
+    )
+
+    clean_db = PythonOperator(
+        task_id='clean_db',
+        python_callable=clean_data
+    )
