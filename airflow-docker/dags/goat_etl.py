@@ -1,4 +1,5 @@
 from airflow import DAG
+from airflow.contrib.operators.file_to_wasb import FileToWasbOperator
 from airflow.operators.bash_operator import BashOperator 
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta 
@@ -434,7 +435,7 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='etl_scrapy',
-    start_date=datetime(2022, 9, 5),
+    start_date=datetime(2022, 9, 6),
     schedule_interval='0 0 * * *') as dag:
 
     extract = PythonOperator(
@@ -447,9 +448,48 @@ with DAG(
         python_callable=transform
     )
 
-    archive = BashOperator(
-        task_id='archive',
-        bash_command= 'tar -zcvf "goat_$(date '+%Y-%m-%d_%H-%M-%S%z(%Z)').tar.gz" ./goat/*.json'
+    archive_json_files = BashOperator(
+        task_id='archive_json_files',
+        bash_command= 'tar -zcvf "goat_$(date '+%Y-%m-%d').tar.gz" ./goat/*.json'
     )
 
-    extract >> transform_load >> archive 
+    mkdir_archive = BashOperator(
+        task_id='mkdir_archive',
+        bash_command= 'mkdir archive'
+    )
+
+    tar_to_archive = BashOperator(
+        task_id='tar_to_archive',
+        bash_command= 'mv *.tar.gz archive/'
+    )
+
+    archive_to_azure_blob = FileToWasbOperator(
+    task_id='upload_azure_blob',
+    dag=dag,
+    file_path="archive/",
+    container_name="sneakers-container",
+    blob_name=f"goat-{datetime.now().strftime('%d-%m-%Y')}-archive",
+    wasb_conn_id="azure_blob"
+    )
+
+    delete_archive_files = BashOperator(
+        task_id='delete_archive_files',
+        bash_command= 'rm archive/*'
+    )
+
+    delete_goat_files = BashOperator(
+        task_id='delete_goat_files',
+        bash_command= 'rm goat/*'
+    )
+
+    delete_archive_dir = BashOperator(
+        task_id='delete_archive_dir',
+        bash_command= 'rmdir archive/'
+    )
+
+    delete_goat_dir = BashOperator(
+        task_id='delete_goat_dir',
+        bash_command= 'rmdir goat/'
+    )
+
+    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_goat_files] > [delete_archive_dir, delete_goat_dir]

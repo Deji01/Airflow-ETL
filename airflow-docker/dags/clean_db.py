@@ -141,7 +141,7 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='etl_scrapy',
-    start_date=datetime(2022, 9, 5),
+    start_date=datetime(2022, 9, 6),
     schedule_interval='30 0 * * *') as dag:
 
     create_connection = PythonOperator(
