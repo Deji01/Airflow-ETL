@@ -1,5 +1,7 @@
 from airflow import DAG
+from airflow.contrib.operators.file_to_wasb import FileToWasbOperator
 from airflow.operators.bash_operator import BashOperator 
+from airflow.operators.email_operator import EmailOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta 
 import glob
@@ -16,7 +18,7 @@ db_name = os.environ["DB_NAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_port = os.environ["DB_PORT"]
 db_user = os.environ["DB_USER"]
- 
+email = os.environ["EMAIL"]
 
 def create_connection():
     "Create Database Connection"
@@ -385,4 +387,11 @@ with DAG(
         bash_command= 'rmdir nike/'
     )
 
-    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_nike_files] > [delete_archive_dir, delete_nike_dir]
+    send_email = EmailOperator(
+    task_id='send_email',
+    to=email,
+    subject="Task : Nike ETL complete",
+    html_content="Nike ETL job completed successfully on {{ ds }}"
+    )
+
+    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_nike_files] >> [delete_archive_dir, delete_nike_dir] >> send_email

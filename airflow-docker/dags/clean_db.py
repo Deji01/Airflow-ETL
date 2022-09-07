@@ -1,5 +1,6 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator 
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.email_operator import EmailOperator 
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta 
 import os
@@ -12,6 +13,7 @@ db_name = os.environ["DB_NAME"]
 db_password = os.environ["DB_PASSWORD"]
 db_port = os.environ["DB_PORT"]
 db_user = os.environ["DB_USER"]
+email = os.environ["EMAIL"]
 
 def create_connection(ti):
     "Create Database Connection"
@@ -174,4 +176,11 @@ with DAG(
         python_callable=complete_price
     )
 
-    create_connection >> [swap_style, swap_model, update_model, single_brand, complete_price]
+    send_email = EmailOperator(
+    task_id='send_email',
+    to=email,
+    subject="Task : Clean_db complete",
+    html_content="Database clean up completed successfully on {{ ds }}"
+    )
+
+    create_connection >> [swap_style, swap_model, update_model, single_brand, complete_price] >> send_email
