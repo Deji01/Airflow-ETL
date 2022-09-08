@@ -1,5 +1,4 @@
 from airflow import DAG
-from airflow.contrib.operators.file_to_wasb import FileToWasbOperator
 from airflow.operators.bash_operator import BashOperator 
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta 
@@ -10,8 +9,11 @@ import psycopg2
 import requests
 import sys
 
-# DATABASE
+# AZURE BLOB
+container = os.environ["AZ_BLOB_CONTAINER"]
+conn_string = os.environ["AZ_SA_CONN_STRING"]
 
+# DATABASE
 db_host = os.environ["DB_HOST"]
 db_name = os.environ["DB_NAME"]
 db_password = os.environ["DB_PASSWORD"]
@@ -425,6 +427,18 @@ def load():
     curr.close()
     connection.close()
 
+def blob_upload():
+    container_client = ContainerClient.from_connection_string(conn_string, container)
+
+    for path in glob.glob("./archive/*"):
+        print(path)
+        file = path.split('/')[-1]
+        blob_client = container_client.get_blob_client(file)
+        print(blob_client)
+        with open(path, "rb") as data:
+            blob_client.upload_blob(data)
+            print(f"{file} uploaded to blob storage")
+
 default_args = {
     'owner' : 'Deji',
     'retry' : 5,
@@ -462,13 +476,9 @@ with DAG(
         bash_command= 'mv *.tar.gz archive/'
     )
 
-    archive_to_azure_blob = FileToWasbOperator(
-    task_id='upload_azure_blob',
-    dag=dag,
-    file_path="archive/",
-    container_name="sneakers-container",
-    blob_name=f"goat-{datetime.now().strftime('%d-%m-%Y')}-archive",
-    wasb_conn_id="azure_blob"
+    archive_to_azure_blob = PythonOperator(
+        task_id='archive_to_azure_blob',
+        python_callable=blob_upload
     )
 
     delete_archive_files = BashOperator(
