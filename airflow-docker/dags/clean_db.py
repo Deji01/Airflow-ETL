@@ -5,13 +5,12 @@ from datetime import datetime, timedelta
 import os
 import sys
 
-# DATABASE 
-
-db_host = os.environ["DB_HOST"]
-db_name = os.environ["DB_NAME"]
-db_password = os.environ["DB_PASSWORD"]
-db_port = os.environ["DB_PORT"]
-db_user = os.environ["DB_USER"]
+# DATABASE
+db_host = os.getenv("DB_HOST")
+db_name = os.getenv("DB_NAME")
+db_password = os.getenv("DB_PASSWORD")
+db_port = os.getenv("DB_PORT")
+db_user = os.getenv("DB_USER")
 
 def create_connection(ti):
     "Create Database Connection"

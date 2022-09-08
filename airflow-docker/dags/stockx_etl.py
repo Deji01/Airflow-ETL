@@ -10,15 +10,15 @@ import requests
 import sys
 
 # AZURE BLOB
-container = os.environ["AZ_BLOB_CONTAINER"]
-conn_string = os.environ["AZ_SA_CONN_STRING"]
+container = os.getenv("AZ_BLOB_CONTAINER")
+conn_string = os.getenv("AZ_SA_CONN_STRING")
 
 # DATABASE
-db_host = os.environ["DB_HOST"]
-db_name = os.environ["DB_NAME"]
-db_password = os.environ["DB_PASSWORD"]
-db_port = os.environ["DB_PORT"]
-db_user = os.environ["DB_USER"]
+db_host = os.getenv("DB_HOST")
+db_name = os.getenv("DB_NAME")
+db_password = os.getenv("DB_PASSWORD")
+db_port = os.getenv("DB_PORT")
+db_user = os.getenv("DB_USER")
 
 def create_connection():
     "Create Database Connection"
@@ -333,7 +333,7 @@ with DAG(
 
     archive_json_files = BashOperator(
         task_id='archive_json_files',
-        bash_command= 'tar -zcvf "stockx_$(date '+%Y-%m-%d').tar.gz" ./stockx/*.json'
+        bash_command= "tar -zcvf '$(date '+%Y-%m-%d')_stockx.tar.gz' ./stockx/*.json"
     )
 
     mkdir_archive = BashOperator(
@@ -371,4 +371,4 @@ with DAG(
         bash_command= 'rmdir stockx/'
     )
 
-    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_stockx_files] >> [delete_archive_dir, delete_stockx_dir]
+    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> delete_archive_files >> delete_stockx_files >> [delete_archive_dir, delete_stockx_dir]
