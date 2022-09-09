@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator 
 from airflow.operators.python import PythonOperator
+from azure.storage.blob import ContainerClient
 from datetime import datetime, timedelta 
 import glob
 import json
@@ -22,9 +23,6 @@ db_user = os.getenv("DB_USER")
 
 def create_connection():
     "Create Database Connection"
-
-    import psycopg2 
-    import sys
 
     host = db_host
     dbname = db_name
@@ -71,11 +69,6 @@ def store_db(curr, query, value):
 
 def extract():
 
-    from datetime import datetime
-    import json
-    import os
-    import requests
-
     headers = {
         "authority": "api.nike.com",
         "accept": "*/*",
@@ -97,8 +90,8 @@ def extract():
     count = 60
     step = 1
 
-    curr = os.getcwd
-    data_dir = os.path.join(curr, "nike")
+    current_dir = os.getcwd
+    data_dir = os.path.join(current_dir, "nike")
 
     for anchor in range(60, 1440, 60):
         url = f"https://api.nike.com/cic/browse/v2?queryid=products&anonymousId=4BDA24CABADC363265C54C3502599558&country=us&endpoint=%2Fproduct_feed%2Frollup_threads%2Fv2%3Ffilter%3Dmarketplace(US)%26filter%3Dlanguage(en)%26filter%3DemployeePrice(true)%26searchTerms%3Dsneakers%26anchor%3D{anchor}%26consumerChannelId%3Dd9a5bc42-4b9c-4976-858a-f159cf99c647%26count%3D{count}&language=en&localizedRangeStr=%7BlowestPrice%7D%20%E2%80%94%20%7BhighestPrice%7D"
@@ -119,8 +112,6 @@ def extract():
 # PROCESS DATA
 
 def transform(file):
-
-    import json 
 
     with open(file, "r") as f:
         data = json.load(f)
@@ -311,8 +302,6 @@ insert_data_query = """
 
 def load():
 
-    import glob
-
     # create database connection
     connection, curr = create_connection()
 
@@ -337,9 +326,6 @@ def load():
 
 def blob_upload():
 
-    from azure.storage.blob import ContainerClient
-    import glob
-    
     container_client = ContainerClient.from_connection_string(conn_string, container)
 
     for path in glob.glob("./archive/*"):

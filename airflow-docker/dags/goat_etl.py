@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator 
 from airflow.operators.python import PythonOperator
+from azure.storage.blob import ContainerClient
 from datetime import datetime, timedelta 
 import glob
 import json
@@ -90,8 +91,8 @@ def extract():
     step = 1
 
     filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
-    curr = os.getcwd
-    data_dir = os.path.join(curr, "goat")
+    current_dir = os.getcwd
+    data_dir = os.path.join(current_dir, "goat")
 
     with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
         json.dump(result, f)
