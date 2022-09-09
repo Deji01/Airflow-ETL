@@ -317,8 +317,8 @@ default_args = {
 
 with DAG(
     default_args=default_args,
-    dag_id='etl_scrapy',
-    start_date=datetime(2022, 9, 6),
+    dag_id='stockx_etl',
+    start_date=datetime(2022, 9, 8),
     schedule_interval='0 2 * * *') as dag:
 
     extract = PythonOperator(
