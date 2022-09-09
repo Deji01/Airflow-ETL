@@ -1,3 +1,5 @@
+from importlib.abc import ExecutionLoader
+from xml.dom.minicompat import EmptyNodeList
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator 
 from airflow.operators.python import PythonOperator
@@ -67,7 +69,7 @@ def store_db(curr, query, value):
 
 # GET DATA
 
-def extract():
+def extract_transform():
 
     headers = {
         "authority": "api.nike.com",
@@ -90,101 +92,99 @@ def extract():
     count = 60
     step = 1
 
-    current_dir = os.getcwd
-    data_dir = os.path.join(current_dir, "nike")
+    # current_dir = os.getcwd()
+    # data_dir = os.path.join(current_dir, "nike")
 
     for anchor in range(60, 1440, 60):
         url = f"https://api.nike.com/cic/browse/v2?queryid=products&anonymousId=4BDA24CABADC363265C54C3502599558&country=us&endpoint=%2Fproduct_feed%2Frollup_threads%2Fv2%3Ffilter%3Dmarketplace(US)%26filter%3Dlanguage(en)%26filter%3DemployeePrice(true)%26searchTerms%3Dsneakers%26anchor%3D{anchor}%26consumerChannelId%3Dd9a5bc42-4b9c-4976-858a-f159cf99c647%26count%3D{count}&language=en&localizedRangeStr=%7BlowestPrice%7D%20%E2%80%94%20%7BhighestPrice%7D"
 
         print(f"Start : Anchor {anchor}")
         response = requests.get(url, headers=headers)
-        result = response.json()
-        print(type(result))
+        data = response.json()
+        print(type(data))
 
         filename = f"nike-{datetime.now().strftime('%d-%m-%Y')}-anchor-{anchor}.json"
-        with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
-            json.dump(result, f)
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f)
 
         print(f"Step {step} Done!!!")
 
         step += 1
 
-# PROCESS DATA
+        # PROCESS DATA
 
-def transform(file):
+        # with open(filename, "r") as f:
+        #     data = json.load(f)
 
-    with open(file, "r") as f:
-        data = json.load(f)
+        search_term = data["data"]["products"]["pages"]["searchSummary"].get("originalTerms")
 
-    search_term = data["data"]["products"]["pages"]["searchSummary"].get("originalTerms")
+        for product in data["data"]["products"]["products"]:
+            id = product.get("id")
+            pid = product.get("pid")
+            product_id = product.get("cloudProductId")
+            product_instance_id = product.get("productInstanceId")
+            product_type = product.get("producType")
+            title = product.get("title")
+            subtitle = product.get("subtitle")
+            color_description = product.get("colorDescription")
+            currency = product["price"].get("currency")
+            current_price = product["price"].get("currentPrice")
+            discounted = product["price"].get("discounted")
+            employee_price = product["price"].get("employeePrice")
+            full_price = product["price"].get("fullPrice")
+            minimum_advertised_price = product["price"].get("minimumAdvertisedPrice")
+            label = product.get("label")
+            in_stock = product.get("inStock")
+            is_coming_soon = product.get("isComingSoon")
+            is_best_seller = product.get("isBestSeller")
+            is_excluded = product.get("isExcluded")
+            is_gift_card = product.get("isGiftCard")
+            is_jersey = product.get("isJersey")
+            is_launch = product.get("isLaunch")
+            is_member_exclusive = product.get("isMemberExclusive")
+            is_nba = product.get("isNBA")
+            is_nfl = product.get("isNFL")
+            is_sustainable = product.get("isSustainable")
+            has_extended_sizing = product.get("hasExtendedSizing")
+            customizable = product.get("customizable")
+            portrait_url = product["images"].get("portraitURL")
+            squarish_url = product["images"].get("squarishURL")
+            url = product.get("url")
 
-    for product in data["data"]["products"]["products"]:
-        id = product.get("id")
-        pid = product.get("pid")
-        product_id = product.get("cloudProductId")
-        product_instance_id = product.get("productInstanceId")
-        product_type = product.get("producType")
-        title = product.get("title")
-        subtitle = product.get("subtitle")
-        color_description = product.get("colorDescription")
-        currency = product["price"].get("currency")
-        current_price = product["price"].get("currentPrice")
-        discounted = product["price"].get("discounted")
-        employee_price = product["price"].get("employeePrice")
-        full_price = product["price"].get("fullPrice")
-        minimum_advertised_price = product["price"].get("minimumAdvertisedPrice")
-        label = product.get("label")
-        in_stock = product.get("inStock")
-        is_coming_soon = product.get("isComingSoon")
-        is_best_seller = product.get("isBestSeller")
-        is_excluded = product.get("isExcluded")
-        is_gift_card = product.get("isGiftCard")
-        is_jersey = product.get("isJersey")
-        is_launch = product.get("isLaunch")
-        is_member_exclusive = product.get("isMemberExclusive")
-        is_nba = product.get("isNBA")
-        is_nfl = product.get("isNFL")
-        is_sustainable = product.get("isSustainable")
-        has_extended_sizing = product.get("hasExtendedSizing")
-        customizable = product.get("customizable")
-        portrait_url = product["images"].get("portraitURL")
-        squarish_url = product["images"].get("squarishURL")
-        url = product.get("url")
-
-        yield (
-            id,
-            pid,
-            product_id,
-            product_instance_id,
-            product_type,
-            title,
-            subtitle,
-            color_description,
-            currency,
-            current_price,
-            discounted,
-            employee_price,
-            full_price,
-            minimum_advertised_price,
-            label,
-            in_stock,
-            is_coming_soon,
-            is_best_seller,
-            is_excluded,
-            is_gift_card,
-            is_jersey,
-            is_launch,
-            is_member_exclusive,
-            is_nba,
-            is_nfl,
-            is_sustainable,
-            has_extended_sizing,
-            customizable,
-            search_term,
-            portrait_url,
-            squarish_url,
-            url
-        )
+            yield (
+                id,
+                pid,
+                product_id,
+                product_instance_id,
+                product_type,
+                title,
+                subtitle,
+                color_description,
+                currency,
+                current_price,
+                discounted,
+                employee_price,
+                full_price,
+                minimum_advertised_price,
+                label,
+                in_stock,
+                is_coming_soon,
+                is_best_seller,
+                is_excluded,
+                is_gift_card,
+                is_jersey,
+                is_launch,
+                is_member_exclusive,
+                is_nba,
+                is_nfl,
+                is_sustainable,
+                has_extended_sizing,
+                customizable,
+                search_term,
+                portrait_url,
+                squarish_url,
+                url
+            )
 
 # SQL QUERY
 
@@ -309,16 +309,14 @@ def load():
     create_table(curr, create_table_query)
 
     # read in json files in data dir
-    files = glob.glob("./nike/*.json")
 
-    for file in files:
-        # get data from file
-        items = transform(file)
+    # get data from file
+    item = extract_transform()
 
-        for value in items:
-            # store data in database
-            store_db(curr, insert_data_query, value)
-            connection.commit()
+    for value in item:
+        # store data in database
+        store_db(curr, insert_data_query, value)
+        connection.commit()
 
     # close cursor and connection
     curr.close()
@@ -349,14 +347,9 @@ with DAG(
     start_date=datetime(2022, 9, 8),
     schedule_interval='0 1 * * *') as dag:
 
-    extract = PythonOperator(
-        task_id='extract',
-        python_callable=extract
-    )
-
-    transform_load = PythonOperator(
-        task_id='transform_load',
-        python_callable=transform
+    etl = PythonOperator(
+        task_id='etl',
+        python_callable=load
     )
 
     archive_json_files = BashOperator(
@@ -399,4 +392,4 @@ with DAG(
         bash_command= 'rmdir nike/'
     )
 
-    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> delete_archive_files >> delete_nike_files >> [delete_archive_dir, delete_nike_dir]
+    etl >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> delete_archive_files >> delete_nike_files >> [delete_archive_dir, delete_nike_dir]
