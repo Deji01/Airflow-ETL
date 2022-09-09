@@ -23,6 +23,9 @@ db_user = os.getenv("DB_USER")
 def create_connection():
     "Create Database Connection"
 
+    import psycopg2 
+    import sys
+
     host = db_host
     dbname = db_name
     user = db_user
@@ -68,6 +71,11 @@ def store_db(curr, query, value):
 
 def extract():
 
+    from datetime import datetime
+    import json
+    import os
+    import requests
+
     headers = {
         "authority": "api.nike.com",
         "accept": "*/*",
@@ -111,6 +119,9 @@ def extract():
 # PROCESS DATA
 
 def transform(file):
+
+    import json 
+
     with open(file, "r") as f:
         data = json.load(f)
 
@@ -299,6 +310,9 @@ insert_data_query = """
 
 
 def load():
+
+    import glob
+
     # create database connection
     connection, curr = create_connection()
 
@@ -322,6 +336,10 @@ def load():
     connection.close()
 
 def blob_upload():
+
+    from azure.storage.blob import ContainerClient
+    import glob
+    
     container_client = ContainerClient.from_connection_string(conn_string, container)
 
     for path in glob.glob("./archive/*"):
