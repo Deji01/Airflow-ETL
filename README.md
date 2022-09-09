@@ -20,7 +20,7 @@ docker-compose down
 ```
 ### execute bash commands in container
 ```bash
-docker exec <container ID>
+docker exec -it <container name> bash
 ```
 ### extending  docker image
 <!-- ```bash
