@@ -1,25 +1,28 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator 
+from airflow.models import Variable
+from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python import PythonOperator
 from azure.storage.blob import ContainerClient
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
 import glob
 import json
 import os
 import psycopg2
 import requests
+from shutil import make_archive
 import sys
 
 # AZURE BLOB
-container = os.getenv("AZ_BLOB_CONTAINER")
-conn_string = os.getenv("AZ_SA_CONN_STRING")
+container = Variable.get("AZ_BLOB_CONTAINER")
+conn_string = Variable.get("AZ_SA_CONN_STRING")
 
 # DATABASE
-db_host = os.getenv("DB_HOST")
-db_name = os.getenv("DB_NAME")
-db_password = os.getenv("DB_PASSWORD")
-db_port = os.getenv("DB_PORT")
-db_user = os.getenv("DB_USER")
+db_host = Variable.get("DB_HOST")
+db_name = Variable.get("DB_NAME")
+db_password = Variable.get("DB_PASSWORD")
+db_port = Variable.get("DB_PORT")
+db_user = Variable.get("DB_USER")
+
 
 def create_connection():
     "Create Database Connection"
@@ -67,27 +70,28 @@ def store_db(curr, query, value):
 
 # GET DATA
 
+
 def extract():
 
     headers = {
-            "authority": "stockx.com",
-            "accept": "*/*",
-            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-            "cache-control": "no-cache",
-            "origin": "https://www.stockx.com",
-            "pragma": "no-cache",
-            "sec-ch-ua": '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
-        }
+        "authority": "stockx.com",
+        "accept": "*/*",
+        "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+        "cache-control": "no-cache",
+        "origin": "https://www.stockx.com",
+        "pragma": "no-cache",
+        "sec-ch-ua": '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
+    }
 
     step = 1
 
-    current_dir = os.getcwd()
+    current_dir = '/opt/airflow/dags/'
     data_dir = os.path.join(current_dir, "stockx")
 
     for i in range(1, 26):
@@ -105,6 +109,7 @@ def extract():
         step += 1
 
 # PROCESS DATA
+
 
 def transform(file):
     with open(file, "r") as f:
@@ -131,7 +136,8 @@ def transform(file):
         volatility = product["market"].get("volatility")
         deadstock_sold = product["market"].get("deadstockSold")
         price_premium = product["market"].get("pricePremium")
-        average_deadstock_price = product["market"].get("averageDeadstockPrice")
+        average_deadstock_price = product["market"].get(
+            "averageDeadstockPrice")
         last_sale = product["market"].get("lastSale")
         change_value = product["market"].get("changeValue")
         change_percentage = product["market"].get("changePercentage")
@@ -174,6 +180,7 @@ def transform(file):
         )
 
 # SQL QUERY
+
 
 create_table_query = """
     CREATE TABLE IF NOT EXISTS stockx (
@@ -283,7 +290,7 @@ def load():
     create_table(curr, create_table_query)
 
     # read in json files in data dir
-    files = glob.glob("./stockx/*.json")
+    files = glob.glob("/opt/airflow/dags/stockx/*.json")
 
     for file in files:
         # get data from file
@@ -298,10 +305,20 @@ def load():
     curr.close()
     connection.close()
 
-def blob_upload():
-    container_client = ContainerClient.from_connection_string(conn_string, container)
 
-    for path in glob.glob("./archive/*"):
+def zip_dir():
+    make_archive(
+        f"/opt/airflow/dags/stockx-{datetime.now().strftime('%d-%m-%Y')}",
+        "zip",
+        "/opt/airflow/dags/stockx/"
+    )
+
+
+def blob_upload():
+    container_client = ContainerClient.from_connection_string(
+        conn_string, container)
+
+    for path in glob.glob("/opt/airflow/dags/archive/*"):
         print(path)
         file = path.split('/')[-1]
         blob_client = container_client.get_blob_client(file)
@@ -310,41 +327,37 @@ def blob_upload():
             blob_client.upload_blob(data)
             print(f"{file} uploaded to blob storage")
 
+
 default_args = {
-    'owner' : 'Deji',
-    'retry' : 5,
-    'retry_delay' : timedelta(minutes=2)
+    'owner': 'Deji',
+    'retry': 5,
+    'retry_delay': timedelta(minutes=2)
 }
 
 with DAG(
-    default_args=default_args,
-    dag_id='stockx_etl',
-    start_date=datetime(2022, 9, 8),
-    schedule_interval='0 2 * * *') as dag:
+        default_args=default_args,
+        dag_id='stockx_etl',
+        start_date=datetime(2022, 9, 9),
+        schedule_interval='0 2 * * *') as dag:
 
-    extract = PythonOperator(
-        task_id='extract',
+    extract_data = PythonOperator(
+        task_id='extract_data',
         python_callable=extract
     )
 
     transform_load = PythonOperator(
         task_id='transform_load',
-        python_callable=transform
+        python_callable=load
     )
 
-    archive_json_files = BashOperator(
+    archive_json_files = PythonOperator(
         task_id='archive_json_files',
-        bash_command= "tar -zcvf '$(date '+%Y-%m-%d')_stockx.tar.gz' ./stockx/*.json"
+        python_callable=zip_dir
     )
 
-    mkdir_archive = BashOperator(
-        task_id='mkdir_archive',
-        bash_command= 'mkdir archive'
-    )
-
-    tar_to_archive = BashOperator(
-        task_id='tar_to_archive',
-        bash_command= 'mv *.tar.gz archive/'
+    zip_to_archive = BashOperator(
+        task_id='zip_to_archive',
+        bash_command='mv /opt/airflow/dags/*.zip /opt/airflow/dags/archive/'
     )
 
     archive_to_azure_blob = PythonOperator(
@@ -354,22 +367,12 @@ with DAG(
 
     delete_archive_files = BashOperator(
         task_id='delete_archive_files',
-        bash_command= 'rm archive/*'
+        bash_command='rm /opt/airflow/dags/archive/*'
     )
 
     delete_stockx_files = BashOperator(
         task_id='delete_stockx_files',
-        bash_command= 'rm stockx/*'
+        bash_command='rm /opt/airflow/dags/stockx/*'
     )
 
-    delete_archive_dir = BashOperator(
-        task_id='delete_archive_dir',
-        bash_command= 'rmdir archive/'
-    )
-
-    delete_stockx_dir = BashOperator(
-        task_id='delete_stockx_dir',
-        bash_command= 'rmdir stockx/'
-    )
-
-    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> delete_archive_files >> delete_stockx_files >> [delete_archive_dir, delete_stockx_dir]
+    extract_data >> transform_load >> archive_json_files >> zip_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_stockx_files]

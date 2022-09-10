@@ -1,25 +1,27 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator 
+from airflow.models import Variable
+from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python import PythonOperator
 from azure.storage.blob import ContainerClient
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
 import glob
 import json
 import os
 import psycopg2
 import requests
+from shutil import make_archive
 import sys
 
 # AZURE BLOB
-container = os.getenv("AZ_BLOB_CONTAINER")
-conn_string = os.getenv("AZ_SA_CONN_STRING")
+container = Variable.get("AZ_BLOB_CONTAINER")
+conn_string = Variable.get("AZ_SA_CONN_STRING")
 
 # DATABASE
-db_host = os.getenv("DB_HOST")
-db_name = os.getenv("DB_NAME")
-db_password = os.getenv("DB_PASSWORD")
-db_port = os.getenv("DB_PORT")
-db_user = os.getenv("DB_USER")
+db_host = Variable.get("DB_HOST")
+db_name = Variable.get("DB_NAME")
+db_password = Variable.get("DB_PASSWORD")
+db_port = Variable.get("DB_PORT")
+db_user = Variable.get("DB_USER")
 
 def create_connection():
     "Create Database Connection"
@@ -90,9 +92,10 @@ def extract():
 
     step = 1
 
-    filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
-    current_dir = os.getcwd()
+    current_dir = '/opt/airflow/dags/'
     data_dir = os.path.join(current_dir, "goat")
+
+    filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
 
     with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
         json.dump(result, f)
@@ -413,7 +416,7 @@ def load():
     create_table(curr, create_table_query)
 
     # read in json files in data dir
-    files = glob.glob("./goat/*.json")
+    files = glob.glob("/opt/airflow/dags/goat/*.json")
 
     for file in files:
         # get data from file
@@ -428,10 +431,17 @@ def load():
     curr.close()
     connection.close()
 
+def zip_dir():
+    make_archive(
+        f"/opt/airflow/dags/goat-{datetime.now().strftime('%d-%m-%Y')}",
+        "zip",
+        "/opt/airflow/dags/goat/"
+    )
+
 def blob_upload():
     container_client = ContainerClient.from_connection_string(conn_string, container)
 
-    for path in glob.glob("./archive/*"):
+    for path in glob.glob("/opt/airflow/dags/archive/*"):
         print(path)
         file = path.split('/')[-1]
         blob_client = container_client.get_blob_client(file)
@@ -449,10 +459,10 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='goat_etl',
-    start_date=datetime(2022, 9, 8),
+    start_date=datetime(2022, 9, 9),
     schedule_interval='0 0 * * *') as dag:
 
-    extract = PythonOperator(
+    extract_data = PythonOperator(
         task_id='extract',
         python_callable=extract
     )
@@ -462,19 +472,14 @@ with DAG(
         python_callable=transform
     )
 
-    archive_json_files = BashOperator(
+    archive_json_files = PythonOperator(
         task_id='archive_json_files',
-        bash_command= "tar -zcvf '$(date '+%Y-%m-%d')_goat.tar.gz' ./goat/*.json"
+        python_callable=zip_dir
     )
 
-    mkdir_archive = BashOperator(
-        task_id='mkdir_archive',
-        bash_command= 'mkdir archive'
-    )
-
-    tar_to_archive = BashOperator(
-        task_id='tar_to_archive',
-        bash_command= 'mv *.tar.gz archive/'
+    zip_to_archive = BashOperator(
+        task_id='zip_to_archive',
+        bash_command='mv /opt/airflow/dags/*.zip /opt/airflow/dags/archive/'
     )
 
     archive_to_azure_blob = PythonOperator(
@@ -484,22 +489,12 @@ with DAG(
 
     delete_archive_files = BashOperator(
         task_id='delete_archive_files',
-        bash_command= 'rm archive/*'
+        bash_command= 'rm /opt/airflow/dags/archive/*'
     )
 
     delete_goat_files = BashOperator(
         task_id='delete_goat_files',
-        bash_command= 'rm goat/*'
+        bash_command= 'rm /opt/airflow/dags/goat/*'
     )
 
-    delete_archive_dir = BashOperator(
-        task_id='delete_archive_dir',
-        bash_command= 'rmdir archive/'
-    )
-
-    delete_goat_dir = BashOperator(
-        task_id='delete_goat_dir',
-        bash_command= 'rmdir goat/'
-    )
-
-    extract >> transform_load >> archive_json_files >> mkdir_archive >> tar_to_archive >> archive_to_azure_blob >> delete_archive_files >> delete_goat_files >> [delete_archive_dir, delete_goat_dir]
+    extract_data >> transform_load >> archive_json_files >> zip_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_goat_files]

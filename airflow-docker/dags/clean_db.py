@@ -1,17 +1,16 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator 
+from airflow.models import Variable
 from airflow.operators.python import PythonOperator
-from azure.storage.blob import ContainerClient
 from datetime import datetime, timedelta 
-import os
+import psycopg2
 import sys
 
 # DATABASE
-db_host = os.getenv("DB_HOST")
-db_name = os.getenv("DB_NAME")
-db_password = os.getenv("DB_PASSWORD")
-db_port = os.getenv("DB_PORT")
-db_user = os.getenv("DB_USER")
+db_host = Variable.get("DB_HOST")
+db_name = Variable.get("DB_NAME")
+db_password = Variable.get("DB_PASSWORD")
+db_port = Variable.get("DB_PORT")
+db_user = Variable.get("DB_USER")
 
 def create_connection(ti):
     "Create Database Connection"
@@ -141,11 +140,11 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='clean_db',
-    start_date=datetime(2022, 9, 8),
+    start_date=datetime(2022, 9, 9),
     schedule_interval='30 0 * * *') as dag:
 
-    create_connection = PythonOperator(
-        task_id='create_connection',
+    connect = PythonOperator(
+        task_id='connect',
         python_callable=create_connection
     )
 
@@ -154,24 +153,24 @@ with DAG(
         python_callable=swap_style_code
     )
 
-    swap_model = PythonOperator(
-        task_id='swap_model',
+    model_swap = PythonOperator(
+        task_id='model_swap',
         python_callable=swap_model
     )
 
-    update_model = PythonOperator(
-        task_id='update_model',
+    model_update = PythonOperator(
+        task_id='model_update',
         python_callable=update_model
     )
 
-    single_brand = PythonOperator(
-        task_id='single_brand',
+    only_brand = PythonOperator(
+        task_id='only_brand',
         python_callable=single_brand
     )
 
-    complete_price = PythonOperator(
-        task_id='complete_price',
+    full_price = PythonOperator(
+        task_id='full_price',
         python_callable=complete_price
     )
 
-    create_connection >> [swap_style, swap_model, update_model, single_brand, complete_price]
+    connect >> [swap_style, model_swap, model_update, only_brand, full_price]
