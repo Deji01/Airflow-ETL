@@ -113,9 +113,7 @@ def extract():
         step += 1
 
 def transform(file):
-    # PROCESS DATA
-
-    with open(file, "r", encoding="utf-8") as f:
+    with open(file, "r") as f:
         data = json.load(f)
 
     search_term = data["data"]["products"]["pages"]["searchSummary"].get("originalTerms")
@@ -363,10 +361,10 @@ with DAG(
     #     python_callable=extract
     # )
 
-    transform_load = PythonOperator(
-        task_id='transform_load',
-        python_callable=transform
-    )
+    # transform_load = PythonOperator(
+    #     task_id='transform_load',
+    #     python_callable=load
+    # )
 
     archive_json_files = PythonOperator(
         task_id='archive_json_files',
@@ -394,5 +392,4 @@ with DAG(
     )
 
 
-    # extract_data >> 
-    transform_load >> archive_json_files >> zip_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_nike_files]
+    extract_data >> transform_load >> archive_json_files >> zip_to_archive >> archive_to_azure_blob >> [delete_archive_files, delete_nike_files]

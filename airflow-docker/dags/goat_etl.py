@@ -469,7 +469,7 @@ with DAG(
 
     transform_load = PythonOperator(
         task_id='transform_load',
-        python_callable=transform
+        python_callable=load
     )
 
     archive_json_files = PythonOperator(
