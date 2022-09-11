@@ -12,20 +12,19 @@ db_password = Variable.get("DB_PASSWORD")
 db_port = Variable.get("DB_PORT")
 db_user = Variable.get("DB_USER")
 
-def create_connection(ti):
-    "Create Database Connection"
+host = db_host
+dbname = db_name
+user = db_user
+password = db_password
+sslmode = "require"
 
-    host = db_host
-    dbname = db_name
-    user = db_user
-    password = db_password
-    sslmode = "require"
+# Constructing connection string
+conn_string = "host={0} user={1} dbname={2} password={3} sslmode={4}".format(
+    host, user, dbname, password, sslmode
+)
 
-    # Constructing connection string
-    conn_string = "host={0} user={1} dbname={2} password={3} sslmode={4}".format(
-        host, user, dbname, password, sslmode
-    )
 
+def swap_style_code():
     try:
         connection = psycopg2.connect(conn_string)
         print("Connection established")
@@ -36,12 +35,6 @@ def create_connection(ti):
 
     curr = connection.cursor()
 
-    ti.xcom_push(key='connection', value=connection)
-    ti.xcom_push(key='curr', value=curr)
-
-def swap_style_code(ti):
-    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
-    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
     try:
         curr.execute(
             """
@@ -58,9 +51,17 @@ def swap_style_code(ti):
     curr.close()
     connection.close()
 
-def swap_model(ti):
-    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
-    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
+def swap_model():
+    try:
+        connection = psycopg2.connect(conn_string)
+        print("Connection established")
+
+    except psycopg2.Error as e:
+        print(f"Error connecting to Postgres DB : {e}")
+        sys.exit(1)
+
+    curr = connection.cursor()
+
     try:
         curr.execute(
             """
@@ -77,9 +78,17 @@ def swap_model(ti):
     curr.close()
     connection.close()
 
-def update_model(ti):
-    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
-    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
+def update_model():
+    try:
+        connection = psycopg2.connect(conn_string)
+        print("Connection established")
+
+    except psycopg2.Error as e:
+        print(f"Error connecting to Postgres DB : {e}")
+        sys.exit(1)
+
+    curr = connection.cursor()
+
     try:
         curr.execute(
             """
@@ -96,9 +105,17 @@ def update_model(ti):
     curr.close()
     connection.close()
 
-def single_brand(ti):
-    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
-    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
+def single_brand():
+    try:
+        connection = psycopg2.connect(conn_string)
+        print("Connection established")
+
+    except psycopg2.Error as e:
+        print(f"Error connecting to Postgres DB : {e}")
+        sys.exit(1)
+
+    curr = connection.cursor()
+
     try:
         curr.execute(
             """
@@ -114,9 +131,17 @@ def single_brand(ti):
     curr.close()
     connection.close()
 
-def complete_price(ti):
-    connection = ti.xcom_pull(task_ids='create_connection', key='connection')
-    curr = ti.xcom_pull(task_ids='create_connection', key='curr')
+def complete_price():
+    try:
+        connection = psycopg2.connect(conn_string)
+        print("Connection established")
+
+    except psycopg2.Error as e:
+        print(f"Error connecting to Postgres DB : {e}")
+        sys.exit(1)
+
+    curr = connection.cursor()
+
     try:
         curr.execute(
             """
@@ -140,13 +165,8 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='clean_db',
-    start_date=datetime(2022, 9, 9),
+    start_date=datetime(2022, 9, 10),
     schedule_interval='30 0 * * *') as dag:
-
-    connect = PythonOperator(
-        task_id='connect',
-        python_callable=create_connection
-    )
 
     swap_style = PythonOperator(
         task_id='swap_style',
@@ -173,4 +193,4 @@ with DAG(
         python_callable=complete_price
     )
 
-    connect >> [swap_style, model_swap, model_update, only_brand, full_price]
+    swap_style >> model_swap >> model_update >> only_brand >> full_price

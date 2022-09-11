@@ -252,7 +252,7 @@ create_table_query = """
     CREATE TABLE IF NOT EXISTS goat (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     matched_terms VARCHAR(20),
-    id VARCHAR(50) NOT NULL PRIMARY KEY,
+    id VARCHAR(50) NOT NULL,
     variation_id VARCHAR(50),
     sku VARCHAR(20),
     slug VARCHAR(100),
@@ -298,7 +298,7 @@ create_table_query = """
     instant_ship_lowest_price_cents_krw NUMERIC(10, 2),
     instant_ship_lowest_price_cents_aud NUMERIC(10, 2),
     image_url VARCHAR(255),
-    used_image_url VARCHAR(255),
+    used_image_url VARCHAR(255)
     )
     """
 
@@ -459,8 +459,8 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='goat_etl',
-    start_date=datetime(2022, 9, 9),
-    schedule_interval='0 0 * * *') as dag:
+    start_date=datetime(2022, 9, 10),
+    schedule_interval='@weekly') as dag:
 
     extract_data = PythonOperator(
         task_id='extract',

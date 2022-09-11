@@ -191,7 +191,7 @@ def transform(file):
 create_table_query = """
     CREATE TABLE IF NOT EXISTS nike (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    id VARCHAR(50) NOT NULL PRIMARY KEY,
+    id VARCHAR(50) NOT NULL,
     pid VARCHAR(10),
     product_id VARCHAR(50),
     product_instance_id VARCHAR(50),
@@ -356,15 +356,15 @@ with DAG(
     start_date=datetime(2022, 9, 9),
     schedule_interval='0 1 * * *') as dag:
 
-    # extract_data = PythonOperator(
-    #     task_id='extract_data',
-    #     python_callable=extract
-    # )
+    extract_data = PythonOperator(
+        task_id='extract_data',
+        python_callable=extract
+    )
 
-    # transform_load = PythonOperator(
-    #     task_id='transform_load',
-    #     python_callable=load
-    # )
+    transform_load = PythonOperator(
+        task_id='transform_load',
+        python_callable=load
+    )
 
     archive_json_files = PythonOperator(
         task_id='archive_json_files',
