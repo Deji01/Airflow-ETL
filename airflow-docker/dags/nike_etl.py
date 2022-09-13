@@ -196,21 +196,21 @@ def transform(file):
 create_table_query = """
     CREATE TABLE IF NOT EXISTS nike (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    id VARCHAR(50) NOT NULL,
-    pid VARCHAR(10),
-    product_id VARCHAR(50),
-    product_instance_id VARCHAR(50),
-    product_type VARCHAR(20),
-    title VARCHAR(100),
-    subtitle VARCHAR(100),
+    id VARCHAR(100) NOT NULL,
+    pid VARCHAR(20),
+    product_id VARCHAR(100),
+    product_instance_id VARCHAR(100),
+    product_type VARCHAR(40),
+    title VARCHAR(255),
+    subtitle VARCHAR(255),
     color_description VARCHAR(255),
-    currency VARCHAR(10),
-    current_price NUMERIC(10, 2),
+    currency VARCHAR(20),
+    current_price NUMERIC(12, 3),
     discounted BOOLEAN,
-    employee_price NUMERIC(10, 2),
-    full_price NUMERIC(10, 2),
-    minimum_advertised_price NUMERIC(10, 2),
-    label VARCHAR(20),
+    employee_price NUMERIC(12, 3),
+    full_price NUMERIC(12, 3),
+    minimum_advertised_price NUMERIC(12, 3),
+    label VARCHAR(40),
     in_stock BOOLEAN,
     is_coming_soon BOOLEAN,
     is_best_seller BOOLEAN,
@@ -224,7 +224,7 @@ create_table_query = """
     is_sustainable BOOLEAN,
     has_extended_sizing BOOLEAN,
     customizable BOOLEAN,
-    search_term VARCHAR(20),
+    search_term VARCHAR(40),
     portrait_url VARCHAR(255),
     squarish_url VARCHAR(255),
     url VARCHAR(255)
@@ -362,7 +362,7 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='nike_etl',
-    start_date=datetime(2022, 9, 9),
+    start_date=datetime(2022, 9, 13),
     schedule_interval='0 1 * * *') as dag:
 
     extract_data = PythonOperator(

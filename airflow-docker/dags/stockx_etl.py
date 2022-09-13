@@ -190,21 +190,21 @@ def transform(file):
 create_table_query = """
     CREATE TABLE IF NOT EXISTS stockx (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    id VARCHAR(50) NOT NULL,
-    uuid VARCHAR(50),
-    shoe VARCHAR(150),
-    title VARCHAR(150),
-    brand VARCHAR(20),
-    colorway VARCHAR(50),
-    condition VARCHAR(20),
+    id VARCHAR(100) NOT NULL,
+    uuid VARCHAR(255),
+    shoe VARCHAR(255),
+    title VARCHAR(255),
+    brand VARCHAR(40),
+    colorway VARCHAR(100),
+    condition VARCHAR(40),
     description VARCHAR(255),
-    product_category VARCHAR(50),
-    release_date VARCHAR(20),
-    retail_price NUMERIC(10, 2),
-    lowest_ask NUMERIC(10, 2),
+    product_category VARCHAR(100),
+    release_date VARCHAR(40),
+    retail_price NUMERIC(12, 3),
+    lowest_ask NUMERIC(12, 3),
     sales_this_period INTEGER,
     sales_last_period INTEGER,
-    highest_bid NUMERIC(10, 2),
+    highest_bid NUMERIC(12, 3),
     volatility NUMERIC(6, 5),
     deadstock_sold INTEGER,
     price_premium NUMERIC(5, 4),
@@ -214,8 +214,8 @@ create_table_query = """
     change_percentage NUMERIC(8, 7),
     last_lowest_ask_time INTEGER,
     last_highest_bid_time INTEGER,
-    last_sale_date VARCHAR(40),
-    url_key VARCHAR(75),
+    last_sale_date VARCHAR(80),
+    url_key VARCHAR(120),
     small_image_url VARCHAR(255),
     thumb_url VARCHAR(255)
     )
@@ -348,7 +348,7 @@ default_args = {
 with DAG(
         default_args=default_args,
         dag_id='stockx_etl',
-        start_date=datetime(2022, 9, 9),
+        start_date=datetime(2022, 9, 13),
         schedule_interval='0 2 * * *') as dag:
 
     extract_data = PythonOperator(
