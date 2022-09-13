@@ -7,4 +7,4 @@ COPY plugins/* /plugins/
 RUN pip install --user --upgrade pip
 RUN pip install --no-cache-dir --user -r /requirements.txt
 RUN docker-compose up airflow-init
-CMD ['docker-compose', 'up']
+CMD ["/bin/bash", "-c", "docker-compose", "up"]
