@@ -69,182 +69,189 @@ def store_db(curr, query, value):
 # GET DATA
 
 def extract():
-    url = "https://ac.cnstrc.com/search/nike%20dunk?c=ciojs-client-2.29.2&key=key_XT7bjdbvjgECO5d8&i=b1f2bb9e-2bd1-49a8-865d-75557d8f8e3c&s=4&page=1&num_results_per_page=60"
+    try:
+        url = "https://ac.cnstrc.com/search/nike%20dunk?c=ciojs-client-2.29.2&key=key_XT7bjdbvjgECO5d8&i=b1f2bb9e-2bd1-49a8-865d-75557d8f8e3c&s=4&page=1&num_results_per_page=60"
 
-    headers = {
-        "authority": "ac.cnstrc.com",
-        "accept": "*/*",
-        "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://www.goat.com",
-        "pragma": "no-cache",
-        "sec-ch-ua": '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
-    }
-
-    response = requests.get(url, headers=headers)
-    result = response.json()
-
-    step = 1
-
-    current_dir = '/opt/airflow/dags/'
-    data_dir = os.path.join(current_dir, "goat")
-
-    filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
-
-    with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
-        json.dump(result, f)
-
-    i = 1
-
-    while requests.get(url, headers=headers).text is not None:
-        i += 1
-        step += 1
-
-        url = f"https://ac.cnstrc.com/search/nike%20dunk?c=ciojs-client-2.29.2&key=key_XT7bjdbvjgECO5d8&i=b1f2bb9e-2bd1-49a8-865d-75557d8f8e3c&s=4&page={i}&num_results_per_page=60"
+        headers = {
+            "authority": "ac.cnstrc.com",
+            "accept": "*/*",
+            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+            "cache-control": "no-cache",
+            "origin": "https://www.goat.com",
+            "pragma": "no-cache",
+            "sec-ch-ua": '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
+        }
 
         response = requests.get(url, headers=headers)
         result = response.json()
 
+        step = 1
+
+        current_dir = '/opt/airflow/dags/'
+        data_dir = os.path.join(current_dir, "goat")
+
         filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
+
         with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
             json.dump(result, f)
 
-        print(f"Step {step} Done!!!")
+        i = 1
+
+        while requests.get(url, headers=headers).text is not None:
+            i += 1
+            step += 1
+
+            url = f"https://ac.cnstrc.com/search/nike%20dunk?c=ciojs-client-2.29.2&key=key_XT7bjdbvjgECO5d8&i=b1f2bb9e-2bd1-49a8-865d-75557d8f8e3c&s=4&page={i}&num_results_per_page=60"
+
+            response = requests.get(url, headers=headers)
+            result = response.json()
+
+            filename = f"goat-{datetime.now().strftime('%d-%m-%Y')}-file-{step}.json"
+            with open(f"{data_dir}/{filename}", "w", encoding="utf-8") as f:
+                json.dump(result, f)
+
+            print(f"Step {step} Done!!!")
+    
+    except BaseException as e:
+        print(e)
 
 # PROCESS DATA
 
 def transform(file):
-    with open(file, "r") as f:
-        data = json.load(f)
+    try:
+        with open(file, "r") as f:
+            data = json.load(f)
 
-    for product in data["response"]["results"]:
-        matched_terms = " ".join(product["matched_terms"])
-        id = product["data"].get("id")
-        variation_id = product["data"].get("variation_id")
-        sku = product["data"].get("sku")
-        slug = product["data"].get("slug")
-        color = product["data"].get("color")
-        category = product["data"].get("category")
-        release_date = product["data"].get("release_date")
-        release_date_year = product["data"].get("release_date_year")
-        value = product["value"]
-        product_type = product["data"].get("product_type")
-        product_condition = product["data"].get("product_condition")
-        count_for_product_condition = product["data"].get("count_for_product_condition")
-        retail_price_cents = product["data"].get("retail_price_cents")
-        retail_price_cents_gbp = product["data"].get("retail_price_cents_gbp")
-        retail_price_cents_twd = product["data"].get("retail_price_cents_twd")
-        retail_price_cents_cad = product["data"].get("retail_price_cents_cad")
-        retail_price_cents_hkd = product["data"].get("retail_price_cents_hkd")
-        retail_price_cents_sgd = product["data"].get("retail_price_cents_sgd")
-        retail_price_cents_krw = product["data"].get("retail_price_cents_krw")
-        retail_price_cents_cny = product["data"].get("retail_price_cents_cny")
-        retail_price_cents_aud = product["data"].get("retail_price_cents_aud")
-        retail_price_cents_jpy = product["data"].get("retail_price_cents_jpy")
-        retail_price_cents_eur = product["data"].get("retail_price_cents_eur")
-        lowest_price_cents = product["data"].get("lowest_price_cents")
-        lowest_price_cents_krw = product["data"].get("lowest_price_cents_krw")
-        lowest_price_cents_aud = product["data"].get("lowest_price_cents_aud")
-        lowest_price_cents_cad = product["data"].get("lowest_price_cents_cad")
-        lowest_price_cents_cny = product["data"].get("lowest_price_cents_cny")
-        lowest_price_cents_sgd = product["data"].get("lowest_price_cents_sgd")
-        lowest_price_cents_gbp = product["data"].get("lowest_price_cents_gbp")
-        lowest_price_cents_eur = product["data"].get("lowest_price_cents_eur")
-        lowest_price_cents_hkd = product["data"].get("lowest_price_cents_hkd")
-        lowest_price_cents_jpy = product["data"].get("lowest_price_cents_jpy")
-        lowest_price_cents_twd = product["data"].get("lowest_price_cents_twd")
-        instant_ship_lowest_price_cents = product["data"].get(
-            "instant_ship_lowest_price_cents"
-        )
-        instant_ship_lowest_price_cents_eur = product["data"].get(
-            "instant_ship_lowest_price_cents_eur"
-        )
-        instant_ship_lowest_price_cents_gbp = product["data"].get(
-            "instant_ship_lowest_price_cents_gbp"
-        )
-        instant_ship_lowest_price_cents_twd = product["data"].get(
-            "instant_ship_lowest_price_cents_twd"
-        )
-        instant_ship_lowest_price_cents_sgd = product["data"].get(
-            "instant_ship_lowest_price_cents_sgd"
-        )
-        instant_ship_lowest_price_cents_hkd = product["data"].get(
-            "instant_ship_lowest_price_cents_hkd"
-        )
-        instant_ship_lowest_price_cents_cny = product["data"].get(
-            "instant_ship_lowest_price_cents_cny"
-        )
-        instant_ship_lowest_price_cents_jpy = product["data"].get(
-            "instant_ship_lowest_price_cents_jpy"
-        )
-        instant_ship_lowest_price_cents_cad = product["data"].get(
-            "instant_ship_lowest_price_cents_cad"
-        )
-        instant_ship_lowest_price_cents_krw = product["data"].get(
-            "instant_ship_lowest_price_cents_krw"
-        )
-        instant_ship_lowest_price_cents_aud = product["data"].get(
-            "instant_ship_lowest_price_cents_aud"
-        )
-        image_url = product["data"].get("image_url")
-        used_image_url = product["data"].get("used_image_url")
+        for product in data["response"]["results"]:
+            matched_terms = " ".join(product["matched_terms"])
+            id = product["data"].get("id")
+            variation_id = product["data"].get("variation_id")
+            sku = product["data"].get("sku")
+            slug = product["data"].get("slug")
+            color = product["data"].get("color")
+            category = product["data"].get("category")
+            release_date = product["data"].get("release_date")
+            release_date_year = product["data"].get("release_date_year")
+            value = product["value"]
+            product_type = product["data"].get("product_type")
+            product_condition = product["data"].get("product_condition")
+            count_for_product_condition = product["data"].get("count_for_product_condition")
+            retail_price_cents = product["data"].get("retail_price_cents")
+            retail_price_cents_gbp = product["data"].get("retail_price_cents_gbp")
+            retail_price_cents_twd = product["data"].get("retail_price_cents_twd")
+            retail_price_cents_cad = product["data"].get("retail_price_cents_cad")
+            retail_price_cents_hkd = product["data"].get("retail_price_cents_hkd")
+            retail_price_cents_sgd = product["data"].get("retail_price_cents_sgd")
+            retail_price_cents_krw = product["data"].get("retail_price_cents_krw")
+            retail_price_cents_cny = product["data"].get("retail_price_cents_cny")
+            retail_price_cents_aud = product["data"].get("retail_price_cents_aud")
+            retail_price_cents_jpy = product["data"].get("retail_price_cents_jpy")
+            retail_price_cents_eur = product["data"].get("retail_price_cents_eur")
+            lowest_price_cents = product["data"].get("lowest_price_cents")
+            lowest_price_cents_krw = product["data"].get("lowest_price_cents_krw")
+            lowest_price_cents_aud = product["data"].get("lowest_price_cents_aud")
+            lowest_price_cents_cad = product["data"].get("lowest_price_cents_cad")
+            lowest_price_cents_cny = product["data"].get("lowest_price_cents_cny")
+            lowest_price_cents_sgd = product["data"].get("lowest_price_cents_sgd")
+            lowest_price_cents_gbp = product["data"].get("lowest_price_cents_gbp")
+            lowest_price_cents_eur = product["data"].get("lowest_price_cents_eur")
+            lowest_price_cents_hkd = product["data"].get("lowest_price_cents_hkd")
+            lowest_price_cents_jpy = product["data"].get("lowest_price_cents_jpy")
+            lowest_price_cents_twd = product["data"].get("lowest_price_cents_twd")
+            instant_ship_lowest_price_cents = product["data"].get(
+                "instant_ship_lowest_price_cents"
+            )
+            instant_ship_lowest_price_cents_eur = product["data"].get(
+                "instant_ship_lowest_price_cents_eur"
+            )
+            instant_ship_lowest_price_cents_gbp = product["data"].get(
+                "instant_ship_lowest_price_cents_gbp"
+            )
+            instant_ship_lowest_price_cents_twd = product["data"].get(
+                "instant_ship_lowest_price_cents_twd"
+            )
+            instant_ship_lowest_price_cents_sgd = product["data"].get(
+                "instant_ship_lowest_price_cents_sgd"
+            )
+            instant_ship_lowest_price_cents_hkd = product["data"].get(
+                "instant_ship_lowest_price_cents_hkd"
+            )
+            instant_ship_lowest_price_cents_cny = product["data"].get(
+                "instant_ship_lowest_price_cents_cny"
+            )
+            instant_ship_lowest_price_cents_jpy = product["data"].get(
+                "instant_ship_lowest_price_cents_jpy"
+            )
+            instant_ship_lowest_price_cents_cad = product["data"].get(
+                "instant_ship_lowest_price_cents_cad"
+            )
+            instant_ship_lowest_price_cents_krw = product["data"].get(
+                "instant_ship_lowest_price_cents_krw"
+            )
+            instant_ship_lowest_price_cents_aud = product["data"].get(
+                "instant_ship_lowest_price_cents_aud"
+            )
+            image_url = product["data"].get("image_url")
+            used_image_url = product["data"].get("used_image_url")
 
-        yield (
-            matched_terms,
-            id,
-            variation_id,
-            sku,
-            slug,
-            color,
-            category,
-            release_date,
-            release_date_year,
-            value,
-            product_type,
-            product_condition,
-            count_for_product_condition,
-            retail_price_cents,
-            retail_price_cents_gbp,
-            retail_price_cents_twd,
-            retail_price_cents_cad,
-            retail_price_cents_hkd,
-            retail_price_cents_sgd,
-            retail_price_cents_krw,
-            retail_price_cents_cny,
-            retail_price_cents_aud,
-            retail_price_cents_jpy,
-            retail_price_cents_eur,
-            lowest_price_cents,
-            lowest_price_cents_krw,
-            lowest_price_cents_aud,
-            lowest_price_cents_cad,
-            lowest_price_cents_cny,
-            lowest_price_cents_sgd,
-            lowest_price_cents_gbp,
-            lowest_price_cents_eur,
-            lowest_price_cents_hkd,
-            lowest_price_cents_jpy,
-            lowest_price_cents_twd,
-            instant_ship_lowest_price_cents,
-            instant_ship_lowest_price_cents_eur,
-            instant_ship_lowest_price_cents_gbp,
-            instant_ship_lowest_price_cents_twd,
-            instant_ship_lowest_price_cents_sgd,
-            instant_ship_lowest_price_cents_hkd,
-            instant_ship_lowest_price_cents_cny,
-            instant_ship_lowest_price_cents_jpy,
-            instant_ship_lowest_price_cents_cad,
-            instant_ship_lowest_price_cents_krw,
-            instant_ship_lowest_price_cents_aud,
-            image_url,
-            used_image_url
-        )
+            yield (
+                matched_terms,
+                id,
+                variation_id,
+                sku,
+                slug,
+                color,
+                category,
+                release_date,
+                release_date_year,
+                value,
+                product_type,
+                product_condition,
+                count_for_product_condition,
+                retail_price_cents,
+                retail_price_cents_gbp,
+                retail_price_cents_twd,
+                retail_price_cents_cad,
+                retail_price_cents_hkd,
+                retail_price_cents_sgd,
+                retail_price_cents_krw,
+                retail_price_cents_cny,
+                retail_price_cents_aud,
+                retail_price_cents_jpy,
+                retail_price_cents_eur,
+                lowest_price_cents,
+                lowest_price_cents_krw,
+                lowest_price_cents_aud,
+                lowest_price_cents_cad,
+                lowest_price_cents_cny,
+                lowest_price_cents_sgd,
+                lowest_price_cents_gbp,
+                lowest_price_cents_eur,
+                lowest_price_cents_hkd,
+                lowest_price_cents_jpy,
+                lowest_price_cents_twd,
+                instant_ship_lowest_price_cents,
+                instant_ship_lowest_price_cents_eur,
+                instant_ship_lowest_price_cents_gbp,
+                instant_ship_lowest_price_cents_twd,
+                instant_ship_lowest_price_cents_sgd,
+                instant_ship_lowest_price_cents_hkd,
+                instant_ship_lowest_price_cents_cny,
+                instant_ship_lowest_price_cents_jpy,
+                instant_ship_lowest_price_cents_cad,
+                instant_ship_lowest_price_cents_krw,
+                instant_ship_lowest_price_cents_aud,
+                image_url,
+                used_image_url
+            )
+    except BaseException as e:
+        print(e)
 
 # SQL QUERY
 
@@ -409,23 +416,26 @@ insert_data_query = """
 
 
 def load():
-    # create database connection
-    connection, curr = create_connection()
+    try:
+        # create database connection
+        connection, curr = create_connection()
 
-    # create table if it doesn't exist
-    create_table(curr, create_table_query)
+        # create table if it doesn't exist
+        create_table(curr, create_table_query)
 
-    # read in json files in data dir
-    files = glob.glob("/opt/airflow/dags/goat/*.json")
+        # read in json files in data dir
+        files = glob.glob("/opt/airflow/dags/goat/*.json")
 
-    for file in files:
-        # get data from file
-        items = transform(file)
+        for file in files:
+            # get data from file
+            items = transform(file)
 
-        for value in items:
-            # store data in database
-            store_db(curr, insert_data_query, value)
-            connection.commit()
+            for value in items:
+                # store data in database
+                store_db(curr, insert_data_query, value)
+                connection.commit()
+    except BaseException as e:
+        print(e)
 
     # close cursor and connection
     curr.close()
@@ -439,16 +449,19 @@ def zip_dir():
     )
 
 def blob_upload():
-    container_client = ContainerClient.from_connection_string(conn_string, container)
+    try:
+        container_client = ContainerClient.from_connection_string(conn_string, container)
 
-    for path in glob.glob("/opt/airflow/dags/archive/*"):
-        print(path)
-        file = path.split('/')[-1]
-        blob_client = container_client.get_blob_client(file)
-        print(blob_client)
-        with open(path, "rb") as data:
-            blob_client.upload_blob(data)
-            print(f"{file} uploaded to blob storage")
+        for path in glob.glob("/opt/airflow/dags/archive/*"):
+            print(path)
+            file = path.split('/')[-1]
+            blob_client = container_client.get_blob_client(file)
+            print(blob_client)
+            with open(path, "rb") as data:
+                blob_client.upload_blob(data)
+                print(f"{file} uploaded to blob storage")
+    except BaseException as e:
+        print(e)
 
 default_args = {
     'owner' : 'Deji',
