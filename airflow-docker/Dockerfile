@@ -22,5 +22,7 @@ ENV AIRFLOW_GID=0
 COPY airflow.sh /airflow.sh
 RUN chmod + x /airflow.sh && /airflow.sh bash && docker-compose up airflow-init
 
+RUN airflow db upgrade
+
 EXPOSE 8080
 CMD ["docker-compose", "up"]
