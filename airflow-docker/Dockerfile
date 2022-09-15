@@ -15,14 +15,14 @@ COPY dags/* /dags/
 COPY logs/* /logs/
 COPY plugins/* /plugins/
 
-ENV AIRFLOW_UID=1000
-ENV AIRFLOW_GID=0
+# ENV AIRFLOW_UID=1000
+# ENV AIRFLOW_GID=0
 
 # RUN docker run --rm -it -v $PWD:$PWD -w $PWD -v /var/run/docker.sock:/var/run/docker.sock
-COPY airflow.sh /airflow.sh
-RUN chmod + x /airflow.sh && /airflow.sh bash && docker-compose up airflow-init
+# COPY airflow.sh /airflow.sh
+# RUN chmod + x /airflow.sh && /airflow.sh bash && docker-compose up airflow-init
 
-RUN airflow db upgrade
+# RUN airflow db upgrade
 
-EXPOSE 8080
-CMD ["docker-compose", "up"]
+# EXPOSE 8080
+# CMD ["docker-compose", "up"]

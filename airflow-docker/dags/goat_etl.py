@@ -473,7 +473,7 @@ with DAG(
     default_args=default_args,
     dag_id='goat_etl',
     start_date=datetime(2022, 9, 13),
-    schedule_interval='@weekly') as dag:
+    schedule_interval='0 3 * * *') as dag:
 
     extract_data = PythonOperator(
         task_id='extract',

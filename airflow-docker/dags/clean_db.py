@@ -166,7 +166,7 @@ with DAG(
     default_args=default_args,
     dag_id='clean_db',
     start_date=datetime(2022, 9, 10),
-    schedule_interval='30 0 * * *') as dag:
+    schedule_interval='0 12 * * *') as dag:
 
     swap_style = PythonOperator(
         task_id='swap_style',
