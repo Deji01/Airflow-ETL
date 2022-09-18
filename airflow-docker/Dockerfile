@@ -3,9 +3,9 @@ COPY requirements.txt /requirements.txt
 RUN pip install --user --upgrade pip
 RUN pip install --no-cache-dir --user -r /requirements.txt
 
-FROM alpine
-COPY --from=library/docker:latest /usr/local/bin/docker /usr/bin/docker
-COPY --from=docker/compose:latest /usr/local/bin/docker-compose /usr/bin/docker-compose
+# FROM alpine
+# COPY --from=library/docker:latest /usr/local/bin/docker /usr/bin/docker
+# COPY --from=docker/compose:latest /usr/local/bin/docker-compose /usr/bin/docker-compose
 
 WORKDIR /opt/airflow
 
@@ -23,6 +23,3 @@ COPY plugins/* /plugins/
 # RUN chmod + x /airflow.sh && /airflow.sh bash && docker-compose up airflow-init
 
 # RUN airflow db upgrade
-
-# EXPOSE 8080
-# CMD ["docker-compose", "up"]
