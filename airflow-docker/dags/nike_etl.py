@@ -196,7 +196,7 @@ def transform(file):
 create_table_query = """
     CREATE TABLE IF NOT EXISTS nike (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    id VARCHAR(100) NOT NULL,
+    id VARCHAR(100),
     pid VARCHAR(20),
     product_id VARCHAR(100),
     product_instance_id VARCHAR(100),

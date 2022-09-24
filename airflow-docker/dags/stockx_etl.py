@@ -190,7 +190,7 @@ def transform(file):
 create_table_query = """
     CREATE TABLE IF NOT EXISTS stockx (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    id VARCHAR(100) NOT NULL,
+    id VARCHAR(100),
     uuid VARCHAR(255),
     shoe VARCHAR(255),
     title VARCHAR(255),
@@ -250,7 +250,7 @@ insert_data_query = """
         last_sale_date,
         url_key,
         small_image_url,
-        thumb_url,
+        thumb_url
         )
     VALUES (
         %s,

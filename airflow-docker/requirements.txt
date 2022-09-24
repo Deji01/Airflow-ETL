@@ -1,6 +1,2 @@
 azure-storage-blob==12.13.1
 psycopg2-binary==2.9.3
-
-ssh -i ~/.ssh/vmkeypair.pem azureuser@sneakers-airflow.westus3.cloudapp.azure.com
-
-pip3 install futures pandas SQLAlchemy psycopg2 celery redis flower flask-bcrypt boto3 ldap3 pymssql azure-servicebus

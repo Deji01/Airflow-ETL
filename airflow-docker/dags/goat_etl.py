@@ -259,7 +259,7 @@ create_table_query = """
     CREATE TABLE IF NOT EXISTS goat (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     matched_terms VARCHAR(40),
-    id VARCHAR(100) NOT NULL,
+    id VARCHAR(100),
     variation_id VARCHAR(100),
     sku VARCHAR(40),
     slug VARCHAR(255),
