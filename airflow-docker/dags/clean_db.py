@@ -165,7 +165,7 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='clean_db',
-    start_date=datetime(2022, 9, 25),
+    start_date=datetime(2022, 9, 24),
     schedule_interval='0 12 * * *') as dag:
 
     swap_style = PythonOperator(
