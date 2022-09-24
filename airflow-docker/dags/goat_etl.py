@@ -103,8 +103,8 @@ def extract():
 
         i = 1
 
-        while requests.get(url, headers=headers).text is not None:
-            i += 1
+        # while requests.get(url, headers=headers).text is not None:
+        for i in range(2, 168):
             step += 1
 
             url = f"https://ac.cnstrc.com/search/nike%20dunk?c=ciojs-client-2.29.2&key=key_XT7bjdbvjgECO5d8&i=b1f2bb9e-2bd1-49a8-865d-75557d8f8e3c&s=4&page={i}&num_results_per_page=60"
@@ -472,7 +472,7 @@ default_args = {
 with DAG(
     default_args=default_args,
     dag_id='goat_etl',
-    start_date=datetime(2022, 9, 18),
+    start_date=datetime(2022, 9, 24),
     schedule_interval='0 3 * * *') as dag:
 
     extract_data = PythonOperator(

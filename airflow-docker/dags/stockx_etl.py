@@ -348,7 +348,7 @@ default_args = {
 with DAG(
         default_args=default_args,
         dag_id='stockx_etl',
-        start_date=datetime(2022, 9, 18),
+        start_date=datetime(2022, 9, 24),
         schedule_interval='0 1 * * *') as dag:
 
     extract_data = PythonOperator(
